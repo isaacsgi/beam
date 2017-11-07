@@ -97,7 +97,8 @@ public class RabbitMqIOTest {
     for (int i = 0; i < 1000; i++) {
       data.add(("Test " + i).getBytes());
     }
-    pipeline.apply(Create.of(data)).apply(RabbitMqIO.write().withUri("amqp://guest:guest@localhost:" + PORT).withQueue("WRITE"));
+    pipeline.apply(Create.of(data)).apply(RabbitMqIO.write()
+        .withUri("amqp://guest:guest@localhost:" + PORT).withQueue("WRITE"));
     pipeline.run();
 
     List<String> received = new ArrayList<>();

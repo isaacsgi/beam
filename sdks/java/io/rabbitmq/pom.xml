@@ -37,11 +37,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
     </dependency>
@@ -93,6 +88,12 @@
     <dependency>
       <groupId>org.apache.qpid</groupId>
       <artifactId>qpid-broker</artifactId>
+      <version>0.28</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.qpid</groupId>
+      <artifactId>qpid-broker-core</artifactId>
       <version>0.28</version>
       <scope>test</scope>
     </dependency>

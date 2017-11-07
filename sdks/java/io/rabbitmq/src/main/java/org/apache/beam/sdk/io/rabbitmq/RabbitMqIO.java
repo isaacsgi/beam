@@ -51,8 +51,6 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PDone;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A IO to publish or consume messages with a RabbitMQ broker.
@@ -206,7 +204,8 @@ public class RabbitMqIO {
      * @return The corresponding {@link ConnectionConfig}.
      */
     public ConnectionConfig withNetworkRecoveryInterval(int networkRecoveryInterval) {
-      checkArgument(networkRecoveryInterval >= 0, "withNetworkRecoveryInterval() requires a positive value");
+      checkArgument(networkRecoveryInterval >= 0,
+          "networkRecoveryInterval has to be positive or 0");
       return builder().setNetworkRecoveryInterval(networkRecoveryInterval).build();
     }
 
@@ -239,7 +238,8 @@ public class RabbitMqIO {
      * @return The corresponding {@link ConnectionConfig}.
      */
     public ConnectionConfig withConnectionTimeout(int connectionTimeout) {
-      checkArgument(connectionTimeout >= 0, "withConnectionTimeout() requires a positive value");
+      checkArgument(connectionTimeout >= 0,
+          "connectionTimeout has to be positive or 0");
       return builder().setConnectionTimeout(connectionTimeout).build();
     }
 
@@ -250,7 +250,8 @@ public class RabbitMqIO {
      * @return The corresponding {@link ConnectionConfig}.
      */
     public ConnectionConfig withRequestedChannelMax(int requestedChannelMax) {
-      checkArgument(requestedChannelMax >= 0, "withRequestedChannelMax() requires a positive value");
+      checkArgument(requestedChannelMax >= 0,
+          "requestedChannelMax has to be positive or 0");
       return builder().setRequestedChannelMax(requestedChannelMax).build();
     }
 
@@ -261,8 +262,8 @@ public class RabbitMqIO {
      * @return The corresponding {@link ConnectionConfig}.
      */
     public ConnectionConfig withRequestedFrameMax(int requestedFrameMax) {
-      checkArgument(requestedFrameMax >= 0, "RabbitMqIO.ConnectionConfig.withRequestedFrameMax"
-          + "(max) called with invalid max");
+      checkArgument(requestedFrameMax >= 0,
+          "requestedFrameMax has to be positive or 0");
       return builder().setRequestedFrameMax(requestedFrameMax).build();
     }
 
@@ -273,8 +274,8 @@ public class RabbitMqIO {
      * @return The corresponding {@link ConnectionConfig}.
      */
     public ConnectionConfig withRequestedHeartbeat(int requestedHeartbeat) {
-      checkArgument(requestedHeartbeat >= 0, "RabbitMqIO.ConnectionConfig"
-          + ".withRequestedHeartbeat(heartbeat) called with invalid heartbeat number");
+      checkArgument(requestedHeartbeat >= 0,
+          "requestedHeartbeat has to be positive or 0");
       return builder().setRequestedHeartbeat(requestedHeartbeat).build();
     }
 
