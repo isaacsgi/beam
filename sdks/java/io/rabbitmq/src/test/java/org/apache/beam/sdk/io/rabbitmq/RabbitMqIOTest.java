@@ -39,15 +39,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Test of {@link RabbitMqIO}.
  */
 public class RabbitMqIOTest {
-
-  private static final Logger LOG = LoggerFactory.getLogger(RabbitMqIOTest.class);
 
   public static final int PORT = 5672;
 
@@ -71,19 +67,7 @@ public class RabbitMqIOTest {
   }
 
   @Test
-  public void test() throws Exception {
-    ConnectionFactory connectionFactory = new ConnectionFactory();
-    connectionFactory.setUri("amqp://guest:guest@localhost:" + PORT);
-    // connectionFactory.useSslProtocol();
-
-    Connection connection = connectionFactory.newConnection();
-    Channel channel = connection.createChannel();
-    for (int i = 0; i < 10; i++) {
-      channel.basicPublish("", "READ", null, ("Test " + i).getBytes());
-    }
-  }
-
-  @Test public void testRead() throws Exception {
+  public void testRead() throws Exception {
     PCollection<byte[]> output = pipeline.apply(
         RabbitMqIO.read().withUri("amqp://guest:guest@localhost:" + PORT).withQueue("READ")
             .withMaxNumRecords(10));
@@ -96,11 +80,15 @@ public class RabbitMqIOTest {
     connectionFactory.setUri("amqp://guest:guest@localhost:" + PORT);
     Connection connection = connectionFactory.newConnection();
     Channel channel = connection.createChannel();
+    channel.queueDeclare("READ", false, false, false, null);
     for (int i = 0; i < 10; i++) {
       channel.basicPublish("", "READ", null, ("Test " + i).getBytes());
     }
 
     pipeline.run();
+
+    channel.close();
+    connection.close();
   }
 
   @Test
