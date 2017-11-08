@@ -25,7 +25,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
-import java.nio.file.Files;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,24 +39,30 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Test of {@link RabbitMqIO}.
  */
 public class RabbitMqIOTest {
 
-  public static final int PORT = 5672;
+  public int port;
 
   @Rule public TestPipeline pipeline = TestPipeline.create();
+  @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   private Broker broker;
 
   @Before
   public void startBroker() throws Exception {
+    try (ServerSocket serverSocket = new ServerSocket(0)) {
+      port = serverSocket.getLocalPort();
+    }
+
     broker = new Broker();
     BrokerOptions options = new BrokerOptions();
-    options.setConfigProperty("qpid.amqp_port", String.valueOf(PORT));
-    options.setConfigProperty("qpid.work_dir", Files.createTempDirectory("qpid").toString());
+    options.setConfigProperty("qpid.amqp_port", String.valueOf(port));
+    options.setConfigProperty("qpid.work_dir", temporaryFolder.newFolder().toString());
     options.setConfigProperty("qpid.home_dir", "src/test/qpid");
     broker.startup(options);
   }
@@ -69,7 +75,7 @@ public class RabbitMqIOTest {
   @Test
   public void testRead() throws Exception {
     PCollection<byte[]> output = pipeline.apply(
-        RabbitMqIO.read().withUri("amqp://guest:guest@localhost:" + PORT).withQueue("READ")
+        RabbitMqIO.read().withUri("amqp://guest:guest@localhost:" + port).withQueue("READ")
             .withMaxNumRecords(10));
     PAssert.that(output)
         .containsInAnyOrder("Test 0".getBytes(), "Test 1".getBytes(), "Test 2".getBytes(),
@@ -77,7 +83,7 @@ public class RabbitMqIOTest {
             "Test 7".getBytes(), "Test 8".getBytes(), "Test 9".getBytes());
 
     ConnectionFactory connectionFactory = new ConnectionFactory();
-    connectionFactory.setUri("amqp://guest:guest@localhost:" + PORT);
+    connectionFactory.setUri("amqp://guest:guest@localhost:" + port);
     Connection connection = connectionFactory.newConnection();
     Channel channel = connection.createChannel();
     channel.queueDeclare("READ", false, false, false, null);
@@ -98,13 +104,13 @@ public class RabbitMqIOTest {
       data.add(("Test " + i).getBytes());
     }
     pipeline.apply(Create.of(data)).apply(RabbitMqIO.write()
-        .withUri("amqp://guest:guest@localhost:" + PORT).withQueue("WRITE"));
+        .withUri("amqp://guest:guest@localhost:" + port).withQueue("WRITE"));
     pipeline.run();
 
     List<String> received = new ArrayList<>();
     ConnectionFactory connectionFactory = new ConnectionFactory();
     connectionFactory.setHost("localhost");
-    connectionFactory.setPort(PORT);
+    connectionFactory.setPort(port);
     connectionFactory.setVirtualHost("/");
     Connection connection = connectionFactory.newConnection();
     Channel channel = connection.createChannel();

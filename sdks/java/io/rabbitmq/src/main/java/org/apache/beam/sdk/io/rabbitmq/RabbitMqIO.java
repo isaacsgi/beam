@@ -18,7 +18,6 @@
 package org.apache.beam.sdk.io.rabbitmq;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.auto.value.AutoValue;
 import com.rabbitmq.client.Channel;
@@ -67,7 +66,7 @@ import org.joda.time.Instant;
  * <pre>{@code
  *
  *  pipeline.apply(
- *    RabbitMqIO.read().withUri("amqp://user:password@localhost:5672/QUEUE")
+ *    RabbitMqIO.read().withUri("amqp://user:password@localhost:5672").withQueue("QUEUE")
  *
  * }</pre>
  *
@@ -84,8 +83,7 @@ import org.joda.time.Instant;
  *
  *  pipeline
  *    .apply(...) // provide PCollection<byte[]>
- *    .apply(RabbitMqIO.write()
- *      .withConnectionConfig(RabbitMqIO.ConnectionConfig.create("localhost", 5672, "/", "QUEUE")));
+ *    .apply(RabbitMqIO.write().withUri("amqp://user:password@localhost:5672").withQueue("QUEUE"));
  *
  * }</pre>
  */
@@ -373,12 +371,6 @@ public class RabbitMqIO {
       return input.getPipeline().apply(transform);
     }
 
-    @Override
-    public void validate(PipelineOptions pipelineOptions) {
-      checkState(connectionConfig() != null, "RabbitMqIO.read() requires a connection config "
-          + "to be set via withConnectionConfig(config)");
-    }
-
   }
 
   static class RabbitMQSource extends UnboundedSource<byte[], RabbitMQCheckpointMark> {
@@ -390,12 +382,7 @@ public class RabbitMqIO {
     }
 
     @Override
-    public void validate() {
-      spec.validate(null);
-    }
-
-    @Override
-    public Coder<byte[]> getDefaultOutputCoder() {
+    public Coder<byte[]> getOutputCoder() {
       return ByteArrayCoder.of();
     }
 
