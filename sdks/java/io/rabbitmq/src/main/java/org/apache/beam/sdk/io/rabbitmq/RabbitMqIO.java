@@ -112,6 +112,8 @@ public class RabbitMqIO {
 
     @Nullable abstract String uri();
     @Nullable abstract String queue();
+    @Nullable abstract String exchange();
+    @Nullable abstract String exchangeType();
 
     abstract int networkRecoveryInterval();
     abstract boolean automaticRecovery();
@@ -128,6 +130,8 @@ public class RabbitMqIO {
     abstract static class Builder {
       abstract Builder setUri(String uri);
       abstract Builder setQueue(String queue);
+      abstract Builder setExchange(String exchange);
+      abstract Builder setExchangeType(String exchangeType);
       abstract Builder setNetworkRecoveryInterval(int networkRecoveryInterval);
       abstract Builder setAutomaticRecovery(boolean automaticRecovery);
       abstract Builder setTopologyRecovery(boolean topologyRecovery);
@@ -141,7 +145,9 @@ public class RabbitMqIO {
     public static ConnectionConfig create() {
       return new AutoValue_RabbitMqIO_ConnectionConfig.Builder()
           .setUri("amqp://localhost:5672")
-          .setQueue("DEFAULT")
+          .setQueue(null)
+          .setExchange("DEFAULT")
+          .setExchangeType("fanout")
           .setAutomaticRecovery(true)
           .setTopologyRecovery(true)
           .setConnectionTimeout(60000)
@@ -153,7 +159,7 @@ public class RabbitMqIO {
     }
 
     /**
-     * Create a RabbitMQ connection configuration.
+     * Create a RabbitMQ connection configuration with broker URI and a queue name.
      *
      * @param uri The RabbitMQ server URI.
      * @param queue The RabbitMQ queue destination.
@@ -161,8 +167,41 @@ public class RabbitMqIO {
      */
     public static ConnectionConfig create(String uri, String queue) {
       checkArgument(uri != null, "uri can not be null");
+      checkArgument(queue != null, "queue can not be null");
       return new AutoValue_RabbitMqIO_ConnectionConfig.Builder().setUri(uri)
           .setQueue(queue)
+          .setExchange(null)
+          .setExchangeType(null)
+          .setAutomaticRecovery(true)
+          .setTopologyRecovery(true)
+          .setConnectionTimeout(60000)
+          .setRequestedChannelMax(0)
+          .setRequestedFrameMax(0)
+          .setRequestedHeartbeat(60)
+          .setNetworkRecoveryInterval(5000)
+          .build();
+    }
+
+    /**
+     * Create a RabbitMQ connection configuration with broker URI and an exchange.
+     *
+     * @param uri The RabbitMQ server URI.
+     * @param exchange The RabbitMQ exchange name.
+     * @param exchangeType The RabbitMQ exchange type (direct, topic, headers, fanout).
+     * @return The corresponding {@link ConnectionConfig}.
+     */
+    public static ConnectionConfig create(String uri, String exchange, String exchangeType) {
+      checkArgument(uri != null, "uri can not be null");
+      checkArgument(exchange != null, "exchange can not be null");
+      checkArgument(exchangeType != null, "exchangeType can not be null");
+      checkArgument(exchangeType.equals("direct")
+          || exchangeType.equals("topic")
+          || exchangeType.equals("headers")
+          || exchangeType.equals("fanout"),
+          "exchangeType should be direct, topic, headers, fanout");
+      return new AutoValue_RabbitMqIO_ConnectionConfig.Builder().setUri(uri)
+          .setExchange(exchange)
+          .setExchangeType(exchangeType)
           .setAutomaticRecovery(true)
           .setTopologyRecovery(true)
           .setConnectionTimeout(60000)
@@ -193,6 +232,24 @@ public class RabbitMqIO {
     public ConnectionConfig withQueue(String queue) {
       checkArgument(queue != null, "queue can not be null");
       return builder().setQueue(queue).build();
+    }
+
+    /**
+     * Define the exchange.
+     *
+     * @param name The exchange name.
+     * @param type The exchange type.
+     * @return The corresponding {@link ConnectionConfig}.
+     */
+    public ConnectionConfig withExchange(String name, String type) {
+      checkArgument(name != null, "name can not be null");
+      checkArgument(type != null, "type can not be null");
+      checkArgument(type.equals("direct")
+              || type.equals("topic")
+              || type.equals("headers")
+              || type.equals("fanout"),
+          "type should be direct, topic, headers, fanout");
+      return builder().setExchange(name).setExchangeType(type).build();
     }
 
     /**
@@ -332,6 +389,16 @@ public class RabbitMqIO {
       return builder().setConnectionConfig(connectionConfig().withQueue(queue)).build();
     }
 
+    public Read withExchange(String name, String type) {
+      checkArgument(name != null, "name can not be null");
+      checkArgument(type != null, "type can not be null");
+      checkArgument(type.equals("direct")
+              || type.equals("topic")
+              || type.equals("headers")
+              || type.equals("fanout"),
+          "exchangeType should be direct, topic, headers, fanout");
+      return builder().setConnectionConfig(connectionConfig().withExchange(name, type)).build();
+    }
 
     /**
      * Define the max number of records received by the {@link Read}.
@@ -407,6 +474,12 @@ public class RabbitMqIO {
     public Coder<RabbitMQCheckpointMark> getCheckpointMarkCoder() {
       return SerializableCoder.of(RabbitMQCheckpointMark.class);
     }
+
+    @Override
+    public boolean requiresDeduping() {
+      return spec.useCorrelationId();
+    }
+
   }
 
   static class RabbitMQCheckpointMark
@@ -414,7 +487,6 @@ public class RabbitMqIO {
 
     transient Channel channel;
     Instant oldestTimestamp;
-    final List<String> correlationIds = new ArrayList<>();
     final List<Long> sessionIds = new ArrayList<>();
 
     @Override
@@ -424,7 +496,6 @@ public class RabbitMqIO {
       }
       channel.txCommit();
       oldestTimestamp = Instant.now();
-      correlationIds.clear();
       sessionIds.clear();
     }
 
@@ -435,6 +506,7 @@ public class RabbitMqIO {
     private final RabbitMQSource source;
 
     private byte[] current;
+    private byte[] currentRecordId;
     private Connection connection;
     private Channel channel;
     private QueueingConsumer consumer;
@@ -468,6 +540,18 @@ public class RabbitMqIO {
     }
 
     @Override
+    public byte[] getCurrentRecordId() {
+      if (current == null) {
+        throw new NoSuchElementException();
+      }
+      if (currentRecordId != null) {
+        return currentRecordId;
+      } else {
+        return "".getBytes();
+      }
+    }
+
+    @Override
     public Instant getCurrentTimestamp() {
       if (currentTimestamp == null) {
         throw new NoSuchElementException();
@@ -498,11 +582,20 @@ public class RabbitMqIO {
         if (channel == null) {
           throw new IOException("No RabbitMQ channel available");
         }
-        channel.queueDeclare(source.spec.connectionConfig().queue(), false, false, false, null);
+        String queueName = null;
+        if (source.spec.connectionConfig().queue() != null) {
+          channel.queueDeclare(source.spec.connectionConfig().queue(), false, false, false, null);
+          queueName = source.spec.connectionConfig().queue();
+        } else if (source.spec.connectionConfig().exchange() != null) {
+          channel.exchangeDeclare(source.spec.connectionConfig().exchange(),
+              source.spec.connectionConfig().exchangeType());
+          queueName = channel.queueDeclare().getQueue();
+          channel.queueBind(queueName, source.spec.connectionConfig().exchange(), "");
+        }
         checkpointMark.channel = channel;
         consumer = new QueueingConsumer(channel);
         channel.txSelect();
-        channel.basicConsume(source.spec.connectionConfig().queue(), false, consumer);
+        channel.basicConsume(queueName, false, consumer);
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -519,11 +612,7 @@ public class RabbitMqIO {
             throw new IOException("RabbitMqIO.Read uses message correlation ID, but received "
                 + "message has a null correlation ID");
           }
-          if (checkpointMark.correlationIds.contains(correlationId)) {
-            // deduplication, we have already processed this message
-            return true;
-          }
-          checkpointMark.correlationIds.add(correlationId);
+          currentRecordId = correlationId.getBytes();
         }
         long deliveryTag = delivery.getEnvelope().getDeliveryTag();
         checkpointMark.sessionIds.add(deliveryTag);
@@ -588,6 +677,17 @@ public class RabbitMqIO {
       return builder().setConnectionConfig(connectionConfig().withQueue(queue)).build();
     }
 
+    public Write withExchange(String exchange, String exchangeType) {
+      checkArgument(exchange != null, "exchange can not be null");
+      checkArgument(exchangeType.equals("direct")
+              || exchangeType.equals("topic")
+              || exchangeType.equals("headers")
+              || exchangeType.equals("fanout"),
+          "exchangeType should be direct, topic, headers, fanout");
+      return builder()
+          .setConnectionConfig(connectionConfig().withExchange(exchange, exchangeType)).build();
+    }
+
     @Override
     public PDone expand(PCollection<byte[]> input) {
       input.apply(ParDo.of(new WriteFn(this)));
@@ -613,13 +713,22 @@ public class RabbitMqIO {
         if (channel == null) {
           throw new IOException("No RabbitMQ channel available");
         }
-        channel.queueDeclare(spec.connectionConfig().queue(), false, false, false, null);
+        if (spec.connectionConfig().queue() != null) {
+          channel.queueDeclare(spec.connectionConfig().queue(), false, false, false, null);
+        } else if (spec.connectionConfig().exchange() != null) {
+          channel.exchangeDeclare(spec.connectionConfig().exchange(),
+              spec.connectionConfig().exchangeType());
+        }
       }
 
       @ProcessElement
       public void processElement(ProcessContext processContext) throws IOException {
         byte[] element = processContext.element();
-        channel.basicPublish("", spec.connectionConfig().queue(), null, element);
+        if (spec.connectionConfig().queue() != null) {
+          channel.basicPublish("", spec.connectionConfig().queue(), null, element);
+        } else if (spec.connectionConfig().exchange() != null) {
+          channel.basicPublish(spec.connectionConfig().exchange(), "", null, element);
+        }
       }
 
       @Teardown

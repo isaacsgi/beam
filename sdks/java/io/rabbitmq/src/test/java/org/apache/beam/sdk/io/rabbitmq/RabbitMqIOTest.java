@@ -20,11 +20,16 @@ package org.apache.beam.sdk.io.rabbitmq;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.QueueingConsumer;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,7 +78,7 @@ public class RabbitMqIOTest {
   }
 
   @Test
-  public void testRead() throws Exception {
+  public void testReadQueue() throws Exception {
     PCollection<byte[]> output = pipeline.apply(
         RabbitMqIO.read().withUri("amqp://guest:guest@localhost:" + port).withQueue("READ")
             .withMaxNumRecords(10));
@@ -97,8 +102,56 @@ public class RabbitMqIOTest {
     connection.close();
   }
 
+  @Test(timeout = 60 * 1000)
+  public void testReadExchange() throws Exception {
+    PCollection<byte[]> output = pipeline.apply(
+        RabbitMqIO.read().withUri("amqp://guest:guest@localhost:" + port)
+            .withExchange("READ", "fanout")
+            .withMaxNumRecords(10));
+    PAssert.that(output).containsInAnyOrder(
+        "Test 0".getBytes(),
+        "Test 1".getBytes(),
+        "Test 2".getBytes(),
+        "Test 3".getBytes(),
+        "Test 4".getBytes(),
+        "Test 5".getBytes(),
+        "Test 6".getBytes(),
+        "Test 7".getBytes(),
+        "Test 8".getBytes(),
+        "Test 9".getBytes());
+
+    ConnectionFactory connectionFactory = new ConnectionFactory();
+    connectionFactory.setUri("amqp://guest:guest@localhost:" + port);
+    Connection connection = connectionFactory.newConnection();
+    final Channel channel = connection.createChannel();
+    channel.exchangeDeclare("READ", "fanout");
+    Thread publisher = new Thread() {
+      @Override
+      public void run() {
+        try {
+          Thread.sleep(5000);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+        for (int i = 0; i < 10; i++) {
+          try {
+            channel.basicPublish("READ", "", null, ("Test " + i).getBytes());
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    };
+    publisher.start();
+    pipeline.run();
+    publisher.join();
+
+    channel.close();
+    connection.close();
+  }
+
   @Test
-  public void testWrite() throws Exception {
+  public void testWriteQueue() throws Exception {
     List<byte[]> data = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
       data.add(("Test " + i).getBytes());
@@ -109,16 +162,59 @@ public class RabbitMqIOTest {
 
     List<String> received = new ArrayList<>();
     ConnectionFactory connectionFactory = new ConnectionFactory();
-    connectionFactory.setHost("localhost");
-    connectionFactory.setPort(port);
-    connectionFactory.setVirtualHost("/");
+    connectionFactory.setUri("amqp://guest:guest@localhost:" + port);
     Connection connection = connectionFactory.newConnection();
     Channel channel = connection.createChannel();
+    // channel.queueDeclare("WRITE", false, false, false, null);
     QueueingConsumer consumer = new QueueingConsumer(channel);
     channel.basicConsume("WRITE", true, consumer);
     for (int i = 0; i < 1000; i++) {
       QueueingConsumer.Delivery delivery = consumer.nextDelivery();
       received.add(new String(delivery.getBody()));
+    }
+
+    assertEquals(1000, received.size());
+    for (int i = 0; i < 1000; i++) {
+      assertTrue(received.contains("Test " + i));
+    }
+
+    channel.close();
+    connection.close();
+  }
+
+  @Test
+  public void testWriteExchange() throws Exception {
+    List<byte[]> data = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      data.add(("Test " + i).getBytes());
+    }
+    pipeline.apply(Create.of(data)).apply(RabbitMqIO.write()
+        .withUri("amqp://guest:guest@localhost:" + port).withExchange("WRITE", "fanout"));
+
+    final List<String> received = new ArrayList<>();
+    ConnectionFactory connectionFactory = new ConnectionFactory();
+    connectionFactory.setUri("amqp://guest:guest@localhost:" + port);
+    Connection connection = connectionFactory.newConnection();
+    Channel channel = connection.createChannel();
+    channel.exchangeDeclare("WRITE", "fanout");
+    String queueName = channel.queueDeclare().getQueue();
+    channel.queueBind(queueName, "WRITE", "");
+    Consumer consumer = new DefaultConsumer(channel) {
+      @Override
+      public void handleDelivery(String consumerTag,
+          Envelope envelope,
+          AMQP.BasicProperties properties,
+          byte[] body) throws IOException {
+        String message = new String(body, "UTF-8");
+        received.add(message);
+      }
+    };
+    channel.basicConsume(queueName, true, consumer);
+
+    pipeline.run();
+
+    while (received.size() < 1000) {
+      Thread.sleep(500);
     }
 
     assertEquals(1000, received.size());
