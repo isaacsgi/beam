@@ -47,6 +47,7 @@ include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-s
 include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-kinesis'
 include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-mongodb'
 include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-mqtt'
+include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-parquet'
 include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-redis'
 include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-solr'
 include ':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-tika'
@@ -125,6 +126,7 @@ project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-s
 project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-kinesis').projectDir = "$rootDir/sdks/java/io/kinesis" as File
 project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-mongodb').projectDir = "$rootDir/sdks/java/io/mongodb" as File
 project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-mqtt').projectDir = "$rootDir/sdks/java/io/mqtt" as File
+project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-parquet').projectDir = "$rootDir/sdks/java/io/parquet" as File
 project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-redis').projectDir = "$rootDir/sdks/java/io/redis" as File
 project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-solr').projectDir = "$rootDir/sdks/java/io/solr" as File
 project(':beam-sdks-parent:beam-sdks-java-parent:beam-sdks-java-io-parent:beam-sdks-java-io-tika').projectDir = "$rootDir/sdks/java/io/tika" as File
