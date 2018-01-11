@@ -459,7 +459,7 @@ public class RabbitMqIO {
       // RabbitMQ uses queue, so, we can have several concurrent consumers as source
       List<RabbitMQSource> sources = new ArrayList<>();
       for (int i = 0; i < desiredNumSplits; i++) {
-        sources.add(new RabbitMQSource(spec));
+        sources.add(this);
       }
       return sources;
     }
