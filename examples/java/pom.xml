@@ -31,9 +31,7 @@
   <description>Apache Beam SDK provides a simple, Java-based
   interface for processing virtually any size data. This
   artifact includes all Apache Beam Java SDK examples.</description>
-
   <packaging>jar</packaging>
-
   <profiles>
 
     <!--
@@ -179,6 +177,15 @@
 
       <build>
         <plugins>
+		<plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${maven-exec-plugin.version}</version>
+          <configuration>
+            <mainClass>org.apache.beam.examples.WordCount</mainClass>
+            <cleanupDaemonThreads>false</cleanupDaemonThreads>
+          </configuration>
+        </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-failsafe-plugin</artifactId>
@@ -407,8 +414,14 @@
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-sdks-java-core</artifactId>
     </dependency>
-
-    <dependency>
+	
+	<dependency>
+	  <groupId>org.apache.beam</groupId>
+	  <artifactId>beam-sdks-java-io-azure</artifactId>
+	  <version>${project.version}</version>
+    </dependency>
+    
+	<dependency>
       <groupId>org.apache.beam</groupId>
       <artifactId>beam-sdks-java-extensions-google-cloud-platform-core</artifactId>
     </dependency>

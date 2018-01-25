@@ -43,6 +43,7 @@
 
   <modules>
     <module>amqp</module>
+    <module>azure</module>
     <module>cassandra</module>
     <module>common</module>
     <module>elasticsearch</module>
