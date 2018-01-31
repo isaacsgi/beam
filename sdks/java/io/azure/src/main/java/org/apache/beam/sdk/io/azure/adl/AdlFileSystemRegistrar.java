@@ -40,13 +40,8 @@ public class AdlFileSystemRegistrar implements FileSystemRegistrar {
   public Iterable<FileSystem> fromOptions(@Nonnull PipelineOptions options) {
     checkNotNull(options,
             "The runner should utilize FileSystems.setDefaultPipelineOptions().");
-    try {
       return ImmutableList.<FileSystem>of(
               new AdlFileSystem(options.as(AdlFileSystemOptions.class)));
-    } catch (Exception e) {
-      // nothing to do
-    }
-    return null;
   }
 
 }

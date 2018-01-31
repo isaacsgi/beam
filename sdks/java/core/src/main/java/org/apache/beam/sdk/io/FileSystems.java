@@ -511,7 +511,7 @@ public class FileSystems {
 
     SCHEME_TO_FILESYSTEM.set(verifySchemesAreUnique(options, registrars));
   }
-
+ 
   @VisibleForTesting
   static Map<String, FileSystem> verifySchemesAreUnique(
       PipelineOptions options, Set<FileSystemRegistrar> registrars) {

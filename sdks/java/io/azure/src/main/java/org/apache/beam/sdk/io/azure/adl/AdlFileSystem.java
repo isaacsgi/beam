@@ -26,7 +26,6 @@ import com.microsoft.azure.datalake.store.ADLStoreClient;
 import com.microsoft.azure.datalake.store.oauth2.AccessTokenProvider;
 import com.microsoft.azure.datalake.store.oauth2.ClientCredsTokenProvider;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
@@ -51,13 +50,10 @@ import org.slf4j.LoggerFactory;
 public class AdlFileSystem extends FileSystem<AdlResourceId> {
 
   private static final Logger LOG = LoggerFactory.getLogger(AdlFileSystem.class);
+  private static ADLStoreClient adlStoreClient;
+  private String inFileURI;
 
-  //Azure Data Lake minimum Buffer size: 4MB
-  // private static final int MINIMUM_UPLOAD_BUFFER_SIZE_BYTES = 4 * 1024 * 1024;
-
-  private ADLStoreClient adlStoreClient;
-
-  AdlFileSystem(AdlFileSystemOptions options) throws Exception {
+  AdlFileSystem(AdlFileSystemOptions options) {
     checkNotNull(options, "options");
 
     if (Strings.isNullOrEmpty(options.getAadAuthEndpoint())) {
@@ -72,9 +68,12 @@ public class AdlFileSystem extends FileSystem<AdlResourceId> {
                                     options.getAadClientId(),
                                     options.getAadClientSecret());
     System.out.println("created access token provider");
+    inFileURI = options.getAdlInputURI();
+    System.out.println("Got Input File URI: " + inFileURI);
 
+    //TODO - pattern match logic to pull host name from 'adl://' AdlInputURI
     adlStoreClient = ADLStoreClient
-            .createClient(new URI(options.getAdlInputURI()).getHost(), provider);
+            .createClient("gidatalake1.azuredatalakestore.net", provider);
     System.out.println("created client");
   }
 
@@ -82,7 +81,6 @@ public class AdlFileSystem extends FileSystem<AdlResourceId> {
   protected ReadableByteChannel open(AdlResourceId resourceId) throws IOException {
     return new AdlReadableSeekableByteChannel(adlStoreClient, resourceId);
   }
-
 
   @Override
   protected List<MatchResult> match(List<String> specs) {
@@ -141,6 +139,7 @@ public class AdlFileSystem extends FileSystem<AdlResourceId> {
   }
 
   /*
+  Per commenting out from JB - confirm if this is needed?
   private ExpandedGlob expandGlob(AdlResourceId glob) {
     //TODO Build for ADLS
     return ExpandedGlob.create(glob, expandedPaths.build());
@@ -165,6 +164,7 @@ public class AdlFileSystem extends FileSystem<AdlResourceId> {
     LOG.debug("creating file {}", resourceId);
     String filePath = resourceId.getPath().toString();
     /*
+  Per commenting out from JB - confirm if this is needed?
     ADLStoreClient client = getClient();
     OutputStream stream = client.createFile(filePath, IfExists.OVERWRITE);
     return Channels.newChannel(

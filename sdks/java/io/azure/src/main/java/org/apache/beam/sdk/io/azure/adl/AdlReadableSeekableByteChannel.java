@@ -33,7 +33,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
 
 /**
- * A readable S3 object, as a {@link SeekableByteChannel}.
+ * TODO - update comment when we get object utilization correct
+ * A readable Azure Data Lake File InputStream object, as a {@link SeekableByteChannel}.
  */
 public class AdlReadableSeekableByteChannel implements SeekableByteChannel {
 
