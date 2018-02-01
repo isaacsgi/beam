@@ -49,6 +49,12 @@ public class AdlResourceId implements ResourceId {
     return new AdlResourceId(new File(path.toString()).toURI());
   }
 
+  static AdlResourceId from(String pathString) {
+    System.out.println(">>AdlResourceId Path : " + pathString);
+    checkNotNull(pathString, "path");
+    return new AdlResourceId(new File(pathString).toURI());
+  }
+
   @Override
   public ResourceId resolve(String other, ResolveOptions resolveOptions) {
     if (resolveOptions == ResolveOptions.StandardResolveOptions.RESOLVE_DIRECTORY) {

@@ -50,6 +50,7 @@ public class AdlReadableSeekableByteChannel implements SeekableByteChannel {
     this.adlStoreClient = checkNotNull(adlStoreClient, "adlStoreClient");
     this.path = checkNotNull(path, "path");
 
+    System.out.println(">>AdlReadableSeekableByteChannel provisioned readable byte channel");
     /* TODO - do we need to validate / set size for ADLS?
     if (path.getSize().isPresent()) {
       contentLength = path.getSize().get();
