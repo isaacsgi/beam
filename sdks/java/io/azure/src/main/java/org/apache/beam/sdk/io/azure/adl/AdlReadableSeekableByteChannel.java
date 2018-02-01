@@ -73,6 +73,7 @@ public class AdlReadableSeekableByteChannel implements SeekableByteChannel {
 
   @Override
   public int read(ByteBuffer destinationBuffer) throws IOException {
+    System.out.println(">>AdlReadableSeekableByteChannel reading readable byte channel");
     if (!isOpen()) {
       throw new ClosedChannelException();
     }

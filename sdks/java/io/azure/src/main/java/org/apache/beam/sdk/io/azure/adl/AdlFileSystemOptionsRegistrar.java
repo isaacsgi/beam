@@ -29,6 +29,7 @@ import org.apache.beam.sdk.options.PipelineOptionsRegistrar;
 public class AdlFileSystemOptionsRegistrar implements PipelineOptionsRegistrar {
 
   @Override public Iterable<Class<? extends PipelineOptions>> getPipelineOptions() {
+    System.out.println(">>AdlFileSystemOptionsRegistrar did something");
     return ImmutableList.<Class<? extends PipelineOptions>>builder()
     .add(AdlFileSystemOptions.class)
     .build();

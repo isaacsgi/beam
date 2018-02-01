@@ -67,18 +67,19 @@ public class AdlFileSystem extends FileSystem<AdlResourceId> {
             new ClientCredsTokenProvider(options.getAadAuthEndpoint(),
                                     options.getAadClientId(),
                                     options.getAadClientSecret());
-    System.out.println("created access token provider");
+    System.out.println(">>ADLFileSystem created access token provider");
     inFileURI = options.getAdlInputURI();
-    System.out.println("Got Input File URI: " + inFileURI);
+    System.out.println(">>ADLFileSystem Got Input File URI: " + inFileURI);
 
     //TODO - pattern match logic to pull host name from 'adl://' AdlInputURI
     adlStoreClient = ADLStoreClient
             .createClient("gidatalake1.azuredatalakestore.net", provider);
-    System.out.println("created client");
+    System.out.println(">>ADLFileSystem created client");
   }
 
   @Override
   protected ReadableByteChannel open(AdlResourceId resourceId) throws IOException {
+    System.out.println(">>ADLFileSystem opening readable byte channel");
     return new AdlReadableSeekableByteChannel(adlStoreClient, resourceId);
   }
 

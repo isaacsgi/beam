@@ -40,6 +40,7 @@ public class AdlResourceId implements ResourceId {
   private final URI uri;
 
   AdlResourceId(URI uri) {
+    System.out.println(">>AdlResourceId uri: " + uri);
     this.uri = uri;
   }
 
